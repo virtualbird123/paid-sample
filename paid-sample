@@ -1,0 +1,88 @@
+<?php
+/* Add extra metaboxes */
+// -------------------------
+// 1. Display Free Sample Add to Cart 
+// Note: change on line 25 value="13103" with Free Sample Product ID Number
+// For excluding category names: change on line 22, in array('category-one','category-two') , add category slugs of your choice 
+
+add_action( 'woocommerce_single_product_summary', 'bbloomer_add_free_sample_add_cart', 35 );
+
+function bbloomer_add_free_sample_add_cart() {
+if ( is_product() && ! $product->is_in_stock() ) && !has_term( array( '_low_stock_amount', 'haberdashery', 'patterns', 'bundles', 'needles', 'pins-clips-and-accessories', 'other-haberdashery', 'kam-snaps', 'ribbons-haberdashery', 'storage', 'zips', 'shop-all-haberdashery', 'sew-in-labels','special-offers', 'gift-vouchers','monthly-stash-builders'), 'product_cat' ) ) {
+?>
+<form class="cart" method="post" enctype='multipart/form-data'>
+<button type="submit" name="add-to-cart" value="13103" class="single_add_to_cart_button button alt">Order a sample</button>
+<input type="hidden" name="free_sample" value="<?php the_ID(); ?>">
+</form>
+<?php }
+}
+
+ 
+// -------------------------
+// 2. Add the custom field to $cart_item
+ 
+
+add_filter( 'woocommerce_add_cart_item_data', 'bbloomer_store_free_sample_id', 10, 2 );
+
+function bbloomer_store_free_sample_id( $cart_item, $product_id ) {
+
+if( isset( $_POST['free_sample'] ) ) {
+        $cart_item['free_sample'] = $_POST['free_sample'];
+}
+return $cart_item; 
+}
+
+// -------------------------
+// 3. Preserve the custom field in the session
+ 
+
+add_filter( 'woocommerce_get_cart_item_from_session', 'bbloomer_get_cart_items_from_session', 10, 2 );
+
+function bbloomer_get_cart_items_from_session( $cart_item, $values ) {
+
+if ( isset( $values['free_sample'] ) ){
+        $cart_item['free_sample'] = $values['free_sample'];
+}
+return $cart_item;
+}
+
+ 
+
+// -------------------------
+// 4. Concatenate "Free Sample" with product name (CART & CHECKOUT)
+
+add_filter( 'woocommerce_cart_item_name', 'bbloomer_alter_cart_item_name', 10, 3 );
+
+function bbloomer_alter_cart_item_name( $product_name, $cart_item, $cart_item_key ) {
+
+if ( $product_name == "Sample" ) {
+
+$product = wc_get_product( $cart_item["free_sample"] );
+
+$product_name =  "Sample (" . $product->get_name() . ")";
+
+}
+
+return $product_name;
+}
+
+// -------------------------
+// 5. Add "Free Sample" product name to order meta
+// Note: this will show on thank you page, emails and orders
+
+add_action('woocommerce_add_order_item_meta','bbloomer_save_posted_field_into_order', 10, 2);
+
+function bbloomer_save_posted_field_into_order( $itemID, $values ) {
+
+    if ( !empty( $values['free_sample'] )) {
+
+        $product = wc_get_product( $values['free_sample'] );
+
+        $product_name .=  " (" . $product->get_name() . ")";
+
+        wc_add_order_item_meta( $itemID, 'Sample for', $product_name );
+
+    }
+
+}
+?>
